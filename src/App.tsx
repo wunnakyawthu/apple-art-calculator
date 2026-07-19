@@ -11,25 +11,6 @@ import AdminPanel from './components/AdminPanel';
 import { supabase } from './supabaseClient';
 import { Toaster } from 'react-hot-toast';
 
-const defaultModels: PhoneModel[] = [
-  { 
-    id: '1', 
-    name: 'iPhone 15 Pro Max', 
-    parts: [
-      { id: '1-screen', name: 'Screen Replacement', price: 1050000, warrantyPeriod: '6 Months' },
-      { id: '1-battery', name: 'Battery Replacement', price: 200000, warrantyPeriod: '3 Months' }
-    ] 
-  },
-  { 
-    id: '2', 
-    name: 'iPhone 15 Pro', 
-    parts: [
-      { id: '2-screen', name: 'Screen Replacement', price: 950000, warrantyPeriod: '6 Months' },
-      { id: '2-battery', name: 'Battery Replacement', price: 180000, warrantyPeriod: '3 Months' }
-    ] 
-  },
-];
-
 export default function App() {
   const [models, setModels] = useState<PhoneModel[]>([]);
   const [lang, setLang] = useState<Language>('en');
@@ -68,8 +49,8 @@ export default function App() {
       console.error('Error fetching models:', modelsError);
     }
 
-    if (modelsData && modelsData.length > 0) {
-      const formattedModels: PhoneModel[] = modelsData.map((m: any) => ({
+    if (modelsData) {
+      const formattedModels = modelsData.map((m: any) => ({
         id: m.id,
         name: m.name,
         parts: (m.repair_parts || []).map((p: any) => ({
@@ -81,7 +62,7 @@ export default function App() {
       }));
       setModels(formattedModels);
     } else {
-      setModels(defaultModels);
+      setModels([]); // Database မှာမရှိရင် ဘာမှမပြပါနဲ့
     }
     
     setIsLoading(false);
