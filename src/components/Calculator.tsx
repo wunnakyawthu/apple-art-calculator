@@ -63,7 +63,6 @@ export default function Calculator({ models, lang, theme = 'light' }: Calculator
   const dict = t[lang];
   const [selectedModelId, setSelectedModelId] = useState<string>('');
   const [isModelModalOpen, setIsModelModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [discounts, setDiscounts] = useState<Record<string, number>>({});
   const [selectedPartIds, setSelectedPartIds] = useState<Record<string, boolean>>({});
 
@@ -91,16 +90,6 @@ export default function Calculator({ models, lang, theme = 'light' }: Calculator
       options: items
     }));
   }, [models]);
-
-  const filteredGroupedOptions = useMemo(() => {
-    if (!searchQuery.trim()) return groupedOptions;
-    
-    const query = searchQuery.toLowerCase();
-    return groupedOptions.map(group => ({
-      ...group,
-      options: group.options.filter(opt => opt.label.toLowerCase().includes(query))
-    })).filter(group => group.options.length > 0);
-  }, [groupedOptions, searchQuery]);
 
   const selectedOption = useMemo(() => {
     for (const group of groupedOptions) {
@@ -211,28 +200,12 @@ export default function Calculator({ models, lang, theme = 'light' }: Calculator
               </button>
             </div>
 
-            {/* Search Input */}
-            <div className="px-5 py-3">
-              <div className="relative flex items-center">
-                <Search className="absolute left-4 w-5 h-5 text-gray-400" />
-                <input 
-                  type="text"
-                  placeholder="Search model..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-gray-100 dark:bg-[#2c2c2e] pl-12 pr-4 py-3.5 rounded-2xl text-base focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900 dark:text-white"
-                  autoFocus
-                />
-              </div>
-            </div>
-
             {/* Models List */}
             <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-4">
-              {filteredGroupedOptions.length > 0 ? (
-                filteredGroupedOptions.map((group) => (
-                  <div key={group.label} className="space-y-2">
-                    <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-2">{group.label}</h3>
-                    <div className="grid gap-1">
+              {groupedOptions.map((group) => (
+                <div key={group.label} className="space-y-2">
+                  <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-2 pt-2">{group.label}</h3>
+                  <div className="grid gap-1">
                       {group.options.map((model) => {
                         const isSelected = model.value === selectedModelId;
                         return (
@@ -259,12 +232,7 @@ export default function Calculator({ models, lang, theme = 'light' }: Calculator
                       })}
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="py-12 text-center text-gray-500 dark:text-gray-400">
-                  No models found matching "{searchQuery}"
-                </div>
-              )}
+                ))}
             </div>
           </div>
         </div>
