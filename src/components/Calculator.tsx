@@ -74,6 +74,7 @@ export default function Calculator({ models, lang, theme = 'light' }: Calculator
   const isDark = theme === 'dark';
 
   const groupedOptions = useMemo(() => {
+    if (!models) return [];
     const groups: Record<string, { value: string; label: string }[]> = {};
 
     models.forEach(model => {
