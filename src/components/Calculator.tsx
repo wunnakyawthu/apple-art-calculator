@@ -6,6 +6,8 @@ import { supabase } from '../supabaseClient';
 
 interface CalculatorProps {
   models: PhoneModel[];
+  selectedModelId: string;
+  onSelectModel: (id: string) => void;
   lang: Language;
   theme?: Theme;
 }
@@ -59,16 +61,15 @@ const getPartIcon = (name: string) => {
   return <ShieldCheck className="w-5 h-5 text-gray-400" />;
 };
 
-export default function Calculator({ models, lang, theme = 'light' }: CalculatorProps) {
+export default function Calculator({ models, selectedModelId, onSelectModel, lang, theme = 'light' }: CalculatorProps) {
   const dict = t[lang];
-  const [selectedModelId, setSelectedModelId] = useState<string>('');
-  const [isModelModalOpen, setIsModelModalOpen] = useState(false);
   const [discounts, setDiscounts] = useState<Record<string, number>>({});
   const [selectedPartIds, setSelectedPartIds] = useState<Record<string, boolean>>({});
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleModelChange = (modelId: string) => {
-    setSelectedModelId(modelId);
-    setIsModelModalOpen(false);
+    onSelectModel(modelId);
+    setIsModalOpen(false);
   };
 
   const isDark = theme === 'dark';
@@ -169,34 +170,49 @@ export default function Calculator({ models, lang, theme = 'light' }: Calculator
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
       
-      {/* Sleek Custom Select Button */}
-      <div className="max-w-md mx-auto">
-        <label className="text-sm font-medium text-gray-500 mb-1.5 block">{dict.selectModel}</label>
-        <button 
-          onClick={() => setIsModelModalOpen(true)}
-          className="w-full flex items-center justify-between p-4 bg-white dark:bg-[#2c2c2e] border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:border-blue-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-        >
-          <div className="flex items-center gap-3">
-            <Smartphone className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-            <span className={`text-base font-medium ${selectedModel ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}>
-              {selectedModel ? selectedModel.name : "Select iPhone Model..."}
-            </span>
+      {/* Professional Empty State Design */}
+      {!selectedModelId && (
+        <div className="flex flex-col items-center justify-center min-h-[40vh] px-4 animate-in fade-in duration-700">
+          
+          {/* Icon Container - Floating Animation */}
+          <div className="mb-8 p-5 rounded-3xl bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-sm animate-bounce-slow">
+            <Smartphone className="w-10 h-10 text-blue-600 dark:text-blue-400" />
           </div>
-          <ChevronDown className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-        </button>
-      </div>
+
+          {/* Liquid Glass Button - Pulse Animation */}
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="group relative px-10 py-4 rounded-full 
+                       bg-white/30 dark:bg-white/5 backdrop-blur-2xl 
+                       border border-white/50 dark:border-white/10 
+                       shadow-[0_8px_30px_rgba(0,0,0,0.04)]
+                       hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] 
+                       hover:scale-105 active:scale-95 transition-all duration-300
+                       text-base font-semibold text-gray-700 dark:text-gray-200"
+          >
+            <span className="flex items-center gap-2">
+              Select Model
+              {/* Animated Dot */}
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600"></span>
+              </span>
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Model Selection Modal */}
-      {isModelModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setIsModelModalOpen(false)}>
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setIsModalOpen(false)}>
           <div 
             className="bg-white dark:bg-[#1c1c1e] w-full max-w-sm md:max-w-md rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-gray-100 dark:border-gray-800"
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="p-5 pb-2 flex items-center justify-between">
+            <div className="p-5 pb-2 flex items-center justify-between border-b border-gray-100 dark:border-gray-800 mb-4">
               <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">Select Model</h2>
-              <button onClick={() => setIsModelModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
@@ -239,22 +255,21 @@ export default function Calculator({ models, lang, theme = 'light' }: Calculator
         </div>
       )}
 
-      {!selectedModel ? (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-[#1c1c1e]/50 rounded-3xl border border-dashed border-gray-300 dark:border-gray-800">
-          {dict.noModelSelected}
-        </div>
-      ) : isLoadingParts ? (
-        <div className="flex justify-center py-12 text-blue-600">
-          <Loader2 className="w-8 h-8 animate-spin" />
-        </div>
-      ) : parts.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-[#1c1c1e]/50 rounded-3xl border border-dashed border-gray-300 dark:border-gray-800">
-          No repair parts found for this model.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {parts.map(part => {
-            const isSelected = !!selectedPartIds[part.id];
+      {/* အောက်ပိုင်းမှ data များ */}
+      {!!selectedModelId && (
+        <>
+          {isLoadingParts ? (
+            <div className="flex justify-center py-12 text-blue-600">
+              <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+          ) : parts.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-[#1c1c1e]/50 rounded-3xl border border-dashed border-gray-300 dark:border-gray-800">
+              No repair parts found for this model.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {parts.map(part => {
+                const isSelected = !!selectedPartIds[part.id];
             const discount = discounts[part.id] || 0;
             const finalPrice = part.price * (1 - discount / 100);
             
@@ -331,6 +346,8 @@ export default function Calculator({ models, lang, theme = 'light' }: Calculator
             );
           })}
         </div>
+      )}
+      </>
       )}
 
       {/* Total Bill & Actions (Floating Glass Island) */}
