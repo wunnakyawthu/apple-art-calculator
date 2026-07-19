@@ -1,9 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { PhoneModel, PhonePart, Language, Theme } from '../types';
 import { t } from '../translations';
-import { ChevronDown, Loader2, Smartphone, Battery, Zap, ShieldCheck, Tag, Wifi, Volume2, Power, Radio, Cpu, ScanFace, Trash2, Receipt } from 'lucide-react';
+import { ChevronDown, Loader2, Smartphone, Battery, Zap, ShieldCheck, Tag, Wifi, Volume2, Power, Radio, Cpu, ScanFace, Trash2, Receipt, Search, X, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import Select, { components, ControlProps, OptionProps, MenuProps, StylesConfig } from 'react-select';
 
 interface CalculatorProps {
   models: PhoneModel[];
@@ -60,157 +59,56 @@ const getPartIcon = (name: string) => {
   return <ShieldCheck className="w-5 h-5 text-gray-400" />;
 };
 
-const CustomControl = (props: ControlProps<{ value: string; label: string }, false>) => {
-  return (
-    <components.Control {...props}>
-      <div className="flex items-center w-full">
-        <Smartphone className="w-5 h-5 text-gray-400 dark:text-gray-500 ml-3.5 shrink-0" />
-        {props.children}
-      </div>
-    </components.Control>
-  );
-};
-
-const CustomOption = (props: OptionProps<{ value: string; label: string }, false>) => {
-  return (
-    <components.Option {...props}>
-      <div className="flex items-center space-x-3">
-        <Smartphone className={`w-4.5 h-4.5 shrink-0 transition-colors ${props.isSelected ? 'text-white' : 'text-gray-400 dark:text-gray-500'}`} />
-        <span className="font-semibold">{props.children}</span>
-      </div>
-    </components.Option>
-  );
-};
-
-const CustomMenu = (props: MenuProps<{ value: string; label: string }, false>) => {
-  return (
-    <components.Menu {...props}>
-      <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-        {props.children}
-      </div>
-    </components.Menu>
-  );
-};
-
 export default function Calculator({ models, lang, theme = 'light' }: CalculatorProps) {
   const dict = t[lang];
   const [selectedModelId, setSelectedModelId] = useState<string>('');
+  const [isModelModalOpen, setIsModelModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [discounts, setDiscounts] = useState<Record<string, number>>({});
   const [selectedPartIds, setSelectedPartIds] = useState<Record<string, boolean>>({});
 
+  const handleModelChange = (modelId: string) => {
+    setSelectedModelId(modelId);
+    setIsModelModalOpen(false);
+  };
+
   const isDark = theme === 'dark';
 
-  const options = useMemo(() => 
-    models.map(m => ({
-      value: m.id,
-      label: m.name
-    })), 
-  [models]);
+  const groupedOptions = useMemo(() => {
+    const groups: Record<string, { value: string; label: string }[]> = {};
 
-  const selectedOption = useMemo(() => 
-    options.find(o => o.value === selectedModelId) || null,
-  [options, selectedModelId]);
+    models.forEach(model => {
+      // Model name ပေါ်မူတည်ပြီး Group ခွဲခြင်း (ဥပမာ: "iPhone 15" ဆိုရင် "iPhone 15 Series" လို့ခွဲမယ်)
+      // သင့် Model နာမည် Format တွေက ညီဖို့တော့လိုပါတယ်
+      const series = model.name.split(' ').slice(0, 2).join(' ') + ' Series'; 
+      
+      if (!groups[series]) groups[series] = [];
+      groups[series].push({ value: model.id, label: model.name });
+    });
 
-  const selectStyles: StylesConfig<{ value: string; label: string }, false> = useMemo(() => ({
-    control: (base, state) => ({
-      ...base,
-      backgroundColor: isDark ? '#2c2c2e' : '#f9fafb',
-      borderColor: state.isFocused 
-        ? '#3b82f6' 
-        : (isDark ? '#3a3a3c' : '#e5e7eb'),
-      boxShadow: state.isFocused 
-        ? '0 0 0 2px rgba(59, 130, 246, 0.2)' 
-        : 'none',
-      borderRadius: '1rem', // rounded-2xl
-      padding: '4px 8px',
-      fontSize: '1.125rem', // text-lg
-      fontWeight: '500',
-      minHeight: '56px',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      borderWidth: '1px',
-      '&:hover': {
-        borderColor: state.isFocused ? '#3b82f6' : (isDark ? '#48484a' : '#d1d5db'),
-      },
-    }),
-    valueContainer: (base) => ({
-      ...base,
-      padding: '2px 4px',
-    }),
-    placeholder: (base) => ({
-      ...base,
-      color: isDark ? '#8e8e93' : '#9ca3af',
-    }),
-    singleValue: (base) => ({
-      ...base,
-      color: isDark ? '#ffffff' : '#111827',
-    }),
-    input: (base) => ({
-      ...base,
-      color: isDark ? '#ffffff' : '#111827',
-      margin: '0px',
-      padding: '0px',
-    }),
-    indicatorsContainer: (base) => ({
-      ...base,
-      color: isDark ? '#8e8e93' : '#9ca3af',
-    }),
-    dropdownIndicator: (base, state) => ({
-      ...base,
-      color: state.isFocused ? '#3b82f6' : (isDark ? '#8e8e93' : '#9ca3af'),
-      padding: '4px',
-      '&:hover': {
-        color: isDark ? '#ffffff' : '#111827',
-      },
-    }),
-    clearIndicator: (base) => ({
-      ...base,
-      padding: '4px',
-    }),
-    indicatorSeparator: () => ({
-      display: 'none',
-    }),
-    menu: (base) => ({
-      ...base,
-      backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
-      border: isDark ? '1px solid #2c2c2e' : '1px solid #e5e7eb',
-      borderRadius: '1rem',
-      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-      overflow: 'hidden',
-      padding: '4px',
-      zIndex: 50,
-    }),
-    menuList: (base) => ({
-      ...base,
-      padding: '4px',
-    }),
-    option: (base, state) => ({
-      ...base,
-      backgroundColor: state.isSelected
-        ? '#3b82f6'
-        : state.isFocused
-          ? (isDark ? '#2c2c2e' : '#f3f4f6')
-          : 'transparent',
-      color: state.isSelected
-        ? '#ffffff'
-        : (isDark ? '#e5e7eb' : '#374151'),
-      cursor: 'pointer',
-      borderRadius: '0.75rem',
-      padding: '12px 16px',
-      fontSize: '1rem',
-      fontWeight: '500',
-      transition: 'background-color 0.15s ease',
-      '&:active': {
-        backgroundColor: state.isSelected ? '#3b82f6' : (isDark ? '#3a3a3c' : '#e5e7eb'),
-      },
-    }),
-    noOptionsMessage: (base) => ({
-      ...base,
-      color: isDark ? '#8e8e93' : '#9ca3af',
-      fontSize: '0.875rem',
-      padding: '16px',
-    }),
-  }), [isDark]);
+    return Object.entries(groups).map(([series, items]) => ({
+      label: series,
+      options: items
+    }));
+  }, [models]);
+
+  const filteredGroupedOptions = useMemo(() => {
+    if (!searchQuery.trim()) return groupedOptions;
+    
+    const query = searchQuery.toLowerCase();
+    return groupedOptions.map(group => ({
+      ...group,
+      options: group.options.filter(opt => opt.label.toLowerCase().includes(query))
+    })).filter(group => group.options.length > 0);
+  }, [groupedOptions, searchQuery]);
+
+  const selectedOption = useMemo(() => {
+    for (const group of groupedOptions) {
+      const found = group.options.find(o => o.value === selectedModelId);
+      if (found) return found;
+    }
+    return null;
+  }, [groupedOptions, selectedModelId]);
 
   const selectedModel = useMemo(() => 
     models.find(m => m.id === selectedModelId), 
@@ -281,76 +179,96 @@ export default function Calculator({ models, lang, theme = 'light' }: Calculator
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
       
-      {/* Sleek Dropdown */}
+      {/* Sleek Custom Select Button */}
       <div className="max-w-md mx-auto">
         <label className="text-sm font-medium text-gray-500 mb-1.5 block">{dict.selectModel}</label>
-        <Select
-          value={selectedOption}
-          onChange={(option) => setSelectedModelId(option ? option.value : '')}
-          options={options}
-          isSearchable={true}
-          placeholder="Search model..."
-          className="text-sm"
-          classNamePrefix="react-select"
-          menuPortalTarget={document.body}
-          styles={{
-            control: (base, state) => ({
-              ...base,
-              borderRadius: '0.75rem',
-              borderColor: state.isFocused ? '#3b82f6' : (isDark ? '#3a3a3c' : '#e5e7eb'),
-              backgroundColor: isDark ? '#2c2c2e' : '#ffffff',
-              padding: '2px 8px',
-              boxShadow: 'none',
-              '&:hover': { borderColor: '#3b82f6' }
-            }),
-            menuPortal: (base) => ({
-              ...base,
-              zIndex: 9999 
-            }),
-            menu: (base) => ({
-              ...base,
-              backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
-              border: isDark ? '1px solid #2c2c2e' : '1px solid #e5e7eb',
-              borderRadius: '0.75rem',
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-              overflow: 'hidden',
-            }),
-            option: (base, state) => ({
-              ...base,
-              backgroundColor: state.isSelected 
-                ? '#3b82f6' 
-                : state.isFocused 
-                  ? (isDark ? '#2c2c2e' : '#eff6ff') 
-                  : 'transparent',
-              color: state.isSelected 
-                ? '#ffffff' 
-                : (isDark ? '#e5e7eb' : '#1f2937'),
-              cursor: 'pointer',
-              padding: '10px 12px',
-              '&:active': {
-                backgroundColor: state.isSelected ? '#3b82f6' : (isDark ? '#3a3a3c' : '#e5e7eb'),
-              }
-            }),
-            singleValue: (base) => ({
-              ...base,
-              color: isDark ? '#ffffff' : '#111827',
-            }),
-            input: (base) => ({
-              ...base,
-              color: isDark ? '#ffffff' : '#111827',
-            }),
-            placeholder: (base) => ({
-              ...base,
-              color: isDark ? '#8e8e93' : '#9ca3af',
-            }),
-          }}
-          components={{
-            Control: CustomControl,
-            Option: CustomOption,
-            Menu: CustomMenu
-          }}
-        />
+        <button 
+          onClick={() => setIsModelModalOpen(true)}
+          className="w-full flex items-center justify-between p-4 bg-white dark:bg-[#2c2c2e] border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:border-blue-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+        >
+          <div className="flex items-center gap-3">
+            <Smartphone className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            <span className={`text-base font-medium ${selectedModel ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}>
+              {selectedModel ? selectedModel.name : "Select iPhone Model..."}
+            </span>
+          </div>
+          <ChevronDown className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+        </button>
       </div>
+
+      {/* Model Selection Modal */}
+      {isModelModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setIsModelModalOpen(false)}>
+          <div 
+            className="bg-white dark:bg-[#1c1c1e] w-full max-w-sm md:max-w-md rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-gray-100 dark:border-gray-800"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-5 pb-2 flex items-center justify-between">
+              <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">Select Model</h2>
+              <button onClick={() => setIsModelModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="px-5 py-3">
+              <div className="relative flex items-center">
+                <Search className="absolute left-4 w-5 h-5 text-gray-400" />
+                <input 
+                  type="text"
+                  placeholder="Search model..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-gray-100 dark:bg-[#2c2c2e] pl-12 pr-4 py-3.5 rounded-2xl text-base focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900 dark:text-white"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* Models List */}
+            <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-4">
+              {filteredGroupedOptions.length > 0 ? (
+                filteredGroupedOptions.map((group) => (
+                  <div key={group.label} className="space-y-2">
+                    <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-2">{group.label}</h3>
+                    <div className="grid gap-1">
+                      {group.options.map((model) => {
+                        const isSelected = model.value === selectedModelId;
+                        return (
+                          <button
+                            key={model.value}
+                            onClick={() => handleModelChange(model.value)}
+                            className={`flex items-center gap-4 w-full p-4 rounded-2xl transition-all duration-300 border ${
+                              isSelected 
+                                ? 'bg-blue-600/10 border-blue-500/30 shadow-[0_4px_20px_-5px_rgba(37,99,235,0.3)]' 
+                                : 'bg-transparent border-transparent hover:bg-gray-100 dark:hover:bg-gray-800/50'
+                            }`}
+                          >
+                            <div className={`p-2 rounded-xl ${isSelected ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
+                              <Smartphone className="w-5 h-5" />
+                            </div>
+                            <span className={`font-semibold text-lg ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-white'}`}>
+                              {model.label}
+                            </span>
+                            {isSelected && (
+                              <CheckCircle2 className="w-5 h-5 text-blue-600 ml-auto" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-12 text-center text-gray-500 dark:text-gray-400">
+                  No models found matching "{searchQuery}"
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {!selectedModel ? (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-[#1c1c1e]/50 rounded-3xl border border-dashed border-gray-300 dark:border-gray-800">
